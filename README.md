@@ -56,3 +56,71 @@ Siguiendo las pautas de entrega, se generaron y empaquetaron individualmente los
 * `www_dir.tar.gz` - Código del sitio web y dependencias alojadas en el disco de 3 GB.
 * `backup_dir.tar.gz` - Respaldo del almacenamiento de 6 GB.
 * `var.tar.gz.part_*` - Directorio `/var` empaquetado y fragmentado en volúmenes pequeños mediante `split` para superar las restricciones de subida de GitHub.
+
+---
+
+## Diagrama Topológico
+
+```text
++===================================================================================================================+
+|                                           HOST FÍSICO (Windows / Anfitrión)                                       |
+|                                                                                                                   |
+|   +-----------------------------------------------------------------------------------------------------------+   |
+|   |  HIPERVISOR: Oracle VirtualBox                                                                            |   |
+|   |                                                                                                           |   |
+|   |   +---------------------------------------------------------------------------------------------------+   |   |
+|   |   |  MÁQUINA VIRTUAL: TPServer (Debian GNU/Linux 11/12)                                               |   |   |
+|   |   |  * Hostname: TPServer                                                                             |   |   |
+|   |   |  * Credenciales de administración: root / palermo                                                 |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  [ CAPA DE RED / INTERFACES ]                                                                     |   |   |
+|   |   |  +---------------------------------------------------------------------------------------------+  |   |   |
+|   |   |  | Adaptador 1 (Bridged / Puente): enp0s3                                                      |  |   |   |
+|   |   |  |   - IP Estática: 10.128.2.204 / Máscara: 255.255.0.0 (/16)                                  |  |   |   |
+|   |   |  |   - Gateway: 10.128.0.1 (Configuración persistente en /etc/network/interfaces)              |  |   |   |   
+|   |   |  +---------------------------------------------------------------------------------------------+  |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  [ SERVICIOS DEL SISTEMA Y PUERTOS ]                                                              |   |   |
+|   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
+|   |   |  | OpenSSH Server          | Puerto 22/TCP                                                     |  |   |   |
+|   |   |  |                         | Auth: Par de llaves pública/privada (root permit login)           |  |   |   |
+|   |   |  |                         | Acceso remoto: VS Code (Remote-SSH via 127.0.0.1:2222)            |  |   |   |
+|   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
+|   |   |  | Servidor Web Apache 2   | Puerto 80/TCP                                                     |  |   |   |
+|   |   |  |                         | Módulos: MPM Prefork, PHP 7.3+, php-mysql                         |  |   |   |
+|   |   |  |                         | VirtualHost: /etc/apache2/sites-available/000-default.conf        |  |   |   |
+|   |   |  |                         | DocumentRoot: /www_dir (Permisos www-data:www-data)               |  |   |   |
+|   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
+|   |   |  | MariaDB Server          | Puerto 3306/TCP                                                   |  |   |   |
+|   |   |  |                         | Servicio: mariadb.service (Socket unix / localhost)               |  |   |   |
+|   |   |  |                         | Base de datos cargada: db.sql                                     |  |   |   |
+|   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
+|   |   |  | Cron Daemon & Scripts   | /etc/crontab (Usuario root)                                       |  |   |   |
+|   |   |  |                         | Script ejecutable: /opt/scripts/backup_full.sh                    |  |   |   |
+|   |   |  |                         | - 00:00 hs (Diario): /var/log  -> /backup_dir/log_bkp_YYYYMMDD    |  |   |   |
+|   |   |  |                         | - 23:00 hs (L, M, V): /www_dir -> /backup_dir/www_bkp_YYYYMMDD    |  |   |   |
+|   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  [ TOPOLOGÍA DE ALMACENAMIENTO Y MONTAJE (/etc/fstab) ]                                           |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  Disco 1: /dev/sda (Disco Primario del Sistema)                                                   |   |   |
+|   |   |    |-- /dev/sda1 (ext4)  ------> Montado en: / (Root FileSystem)                                  |   |   |
+|   |   |    `-- /dev/sda5 (swap)  ------> Área de intercambio (SWAP)                                       |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  Disco 2: /dev/sdb (Almacenamiento de Usuarios)                                                   |   |   |
+|   |   |    `-- /dev/sdb1 (ext4)  ------> Montado en: /home                                                |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   |  Disco 3: /dev/sdc (Disco Secundario dedicado - 10 GB)                                            |   |   |
+|   |   |    |-- /dev/sdc1 (ext4 - 3 GB, Id 83)                                                             |   |   |
+|   |   |    |     |                                                                                        |   |   |
+|   |   |    |     `---> Montado en: /www_dir                                                               |   |   |
+|   |   |    |           Contenido: index.php (Web PHP conectada a DB), logo.png                            |   |   |
+|   |   |    |                                                                                              |   |   |
+|   |   |    `-- /dev/sdc2 (ext4 - 6 GB, Id 83)                                                             |   |   |
+|   |   |          |                                                                                        |   |   |
+|   |   |          `---> Montado en: /backup_dir                                                            |   |   |
+|   |   |                Contenido: Repositorio de backups generados en formato ANSI                        |   |   |
+|   |   |                                                                                                   |   |   |
+|   |   +---------------------------------------------------------------------------------------------------+   |   |
+|   +-----------------------------------------------------------------------------------------------------------+   |
++===================================================================================================================+
