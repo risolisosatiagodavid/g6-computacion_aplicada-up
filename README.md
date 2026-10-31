@@ -84,7 +84,6 @@ Siguiendo las pautas de entrega, se generaron y empaquetaron individualmente los
 |   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
 |   |   |  | OpenSSH Server          | Puerto 22/TCP                                                     |  |   |   |
 |   |   |  |                         | Auth: Par de llaves pública/privada (root permit login)           |  |   |   |
-|   |   |  |                         | Acceso remoto: VS Code (Remote-SSH via 127.0.0.1:2222)            |  |   |   |
 |   |   |  +-------------------------+-------------------------------------------------------------------+  |   |   |
 |   |   |  | Servidor Web Apache 2   | Puerto 80/TCP                                                     |  |   |   |
 |   |   |  |                         | Módulos: MPM Prefork, PHP 7.3+, php-mysql                         |  |   |   |
